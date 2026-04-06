@@ -1,5 +1,8 @@
 import pygame
 #import math
+import pathlib
+import os
+os.chdir(pathlib.Path(__file__).parent)
 
 # I suck at this
 # Example file showing a basic pygame "game loop"
