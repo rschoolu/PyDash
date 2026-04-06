@@ -41,9 +41,12 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         self.grounded = False
         self.mini = False
         self.gravity = 1 # 1 = normal gravity, -1 = flipped gravity, 0 = wuttttt
+        self.gamemodeGravity = 1
+        self.gamemodeOrbForce = 1
         self.speed = (gridSizeInPixels*10.3761348898)/60 # adjust later
         self.rotation = 90 # in degrees
-        self.orbBuffer = False # If can orb buffer
+        #self.orbBuffer = False # If can orb buffer
+        self.clickBuffer = False #if click can buffer deprecates orb bufferrr
         # \|/ change these based on gamemode
         self.maxYVel = 100
         self.minYVel = -100
@@ -53,6 +56,11 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
 
         #LOCKED
         self.cubeSize = gridSizeInPixels
+
+        #### EXPLAINING GRAVITIES!!!!
+        # self.gravity <- trigger changable gravity/portal and orb gravity
+        # self.gamemodeGravity <- gamemode-depended gravity multiplier
+        # self.baseGravity <- CONSTANT!! DO NOT CHANGE UNLESS YOU ARE MODIFYING GAME-WIDE GRAVITY!!!
 
         # TODO: Move these into gameplay constants class possibly?
         # Probably not
@@ -119,12 +127,28 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         tempRect = tempImage.get_rect(center=tempRect.center)
         #self.sprite.update(rect=tempRect,image=tempImage)
         display.blit(tempImage,tempRect)
+    def updateGamemodeDependentVariables(self,gamemode):
+        # basically just update max velocities and gravity values based on gamemode
+        # match case time
+        match gamemode:
+            case "cube":
+                self.maxYVel = 100
+                self.minYVel = -100
+                self.gamemodeGravity = 1
+                self.gamemodeOrbForce = 1
+            case "ball":
+                self.maxYVel = 30
+                self.minYVel = -30
+                self.gamemodeGravity = 0.6
+                self.gamemodeOrbForce = 0.7
+        return
     def physicsTick(self): # physicstick
         #for block in blocksInLevel:
             #block.updateHitbox()
         # tick velocity
         global floorY,ceilingY
         currentGamemode = self.gamemode
+        self.updateGamemodeDependentVariables(currentGamemode)
 
         if velocityUpdate == "pre":
             self.y += self.yVelocity*dMult # DO NOT PUT A DELTA MULTIPLIER ON THIS DO NOT PUT IT ON THERE PLEASE
@@ -136,11 +160,11 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         # Also problem with the next block of code because "self.grounded = False"
         if mouseClick and not self.grounded:
             #print("orb buffer enabled")
-            self.orbBuffer = True
+            #self.orbBuffer = True
             self.clickBuffer = True
         if (not mouseHeld) or self.grounded:
             #print("orb buffer disabled roses")
-            self.orbBuffer = False
+            #self.orbBuffer = False
             self.clickBuffer = False
 
         floorHitbox = self.floorHitboxRect
@@ -205,10 +229,11 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                     self.die()
             if block.specialHitboxRect != False:
                 touchingCase = self.specialHitboxRect.colliderect(block.specialHitboxRect)
-                orbCase = touchingCase and (mouseClick == True or self.orbBuffer == True)
+                orbCase = touchingCase and (mouseClick == True or self.clickBuffer == True)
                 def disableOrb():
                     global mouseClick
-                    self.orbBuffer = False
+                    #self.orbBuffer = False
+                    self.clickBuffer = False
                     mouseClick = False
                     self.grounded = False
                     block.specialHitboxRect = False
@@ -218,24 +243,33 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                         if orbCase:
                             disableOrb()
                             self.gravity *= -1
-                            self.yVelocity = -10*(self.gravity/abs(self.gravity))
+                            self.yVelocity = -10*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce # IMPORTANT: Not sure if this is good
                     case "yellowRing":
                         if orbCase:
                             disableOrb()
-                            self.yVelocity = self.jumpForce*(self.gravity/abs(self.gravity))
+                            self.yVelocity = self.jumpForce*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce # IMPORTANT: Not sure if this is good
                     case "pinkRing":
                         if orbCase:
                             disableOrb()
-                            self.yVelocity = 18*(self.gravity/abs(self.gravity)) #17-20 range
+                            #17-20 range
+                            self.yVelocity = 19*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce # IMPORTANT: Not sure if this is good
                     case "portalBall":
                         if touchingCase:
                             block.specialHitboxRect = False
                             self.gamemode = "ball"
                             floorY = round((block.y-40)/80)*80 - 3*80
-                            ceilingY = round((block.y-40)/80)*80 + 4*80
+                            if floorY < 0:
+                                floorY = 0
+                            ceilingY = floorY + 7*80
+                    case "portalCube":
+                        if touchingCase:
+                            block.specialHitboxRect = False
+                            self.gamemode = "cube"
+                            floorY = 0
+                            ceilingY = gridSizeInPixels*500
         
         if not self.grounded:
-            self.yVelocity -= self.gravity*self.baseGravity*dMult
+            self.yVelocity -= self.gravity*self.baseGravity*self.gamemodeGravity*dMult
         else:
             #manual minimum fucking retard
             if self.yVelocity*(self.gravity/abs(self.gravity)) < 0:
@@ -252,10 +286,30 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
             
 
         #terminal velocity
-        if self.yVelocity > self.maxYVel:
+        """if self.yVelocity > self.maxYVel:
             self.yVelocity = self.maxYVel
         if self.yVelocity < self.minYVel:
-            self.yVelocity = -self.minYVel
+            self.yVelocity = self.minYVel"""
+        # gravity dependent terminal velocity
+
+        if self.yVelocity*(self.gravity/abs(self.gravity)) > self.maxYVel:
+            self.yVelocity = self.maxYVel*(self.gravity/abs(self.gravity))
+        if self.yVelocity*(self.gravity/abs(self.gravity)) < self.minYVel:
+            self.yVelocity = self.minYVel*(self.gravity/abs(self.gravity))
+
+        """if self.gravity/abs(self.gravity) == 1:
+            if self.yVelocity > self.maxYVel:
+                self.yVelocity = self.maxYVel
+            if self.yVelocity < self.minYVel:
+                self.yVelocity = self.minYVel
+        elif self.gravity/abs(self.gravity) == -1:
+            # 30 > -10 == -30 < 10
+            # or -self.yVelocity < self.minYVel ???
+            if -self.yVelocity < self.minYVel:
+                self.yVelocity = -self.minYVel
+            if -self.yVelocity > self.maxYVel:
+                self.yVelocity = -self.maxYVel
+        """
 
         if mouseHeld and self.grounded and currentGamemode == "cube":
             #jump
@@ -266,6 +320,7 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
             match currentGamemode:
                 case "ball":
                     self.gravity *= -1
+                    self.yVelocity = -7*(self.gravity/abs(self.gravity))
                     self.clickBuffer = False
 
         if velocityUpdate == "post":
@@ -284,6 +339,7 @@ class Block():
         self.blockType = blocktype
         self.textureStr = texture
         self.textureImage = pygame.image.load(self.textureStr).convert_alpha()
+        self.specialTextureImage = self.getSpecialTextureImage()
         self.scale = scale # multiplier
         self.rotation = rotation
         self.blockSize = gridSizeInPixels*self.scale
@@ -352,7 +408,7 @@ class Block():
             case "smallSpike":
                 self.damageHitboxRect = pygame.Rect(0,0,self.blockSize*0.3,self.blockSize*0.2)
                 self.dhOffsets = [0,20*self.scale]
-            case "portalBall":
+            case "portalBall" | "portalCube" | "portalWave" | "portalUfo" | "portalFlippedGrav" | "portalNormalGrav":
                 self.specialHitboxRect = pygame.Rect(0,0,self.blockSize*0.8,self.blockSize*2.7)
                 self.shOffsets = [0,0]
         #self.bhOffsets = self.rotateOffsets(self.bhOffsets)
@@ -377,6 +433,30 @@ class Block():
             self.damageHitboxRect.center = (self.x+rotDHOffsets[0],-self.y+rotDHOffsets[1])
         if self.specialHitboxRect:
             self.specialHitboxRect.center = (self.x+rotSHOffsets[0],-self.y+rotBHOffsets[1])
+    def getSpecialTextureImage(self):
+        if self.textureStr.count("portals") < 1:
+            return False
+        return pygame.image.load(self.textureStr.replace("front","back")).convert_alpha()
+    def blitSpecialTexture(self):
+        if not self.specialTextureImage:
+            return
+        # blit special portal texture the underside yuh
+        if not ((cameraX+300)-self.x < 80*5 and (cameraX+300)-self.x > -80*13 and (cameraY-520)-self.y < 80*4 and (cameraY-520)-self.y > -80*7):
+            return
+        
+        if not self.imageCache.get("specialTextureImage",False):
+            sizeWidth,sizeHeight = (self.specialTextureImage.get_width() * 80/120,self.specialTextureImage.get_height() * 80/120)
+            tempImage = pygame.transform.scale(self.specialTextureImage,(sizeWidth,sizeHeight))
+            tempImage = pygame.transform.rotate(tempImage,-(self.rotation-90)%360)
+            self.imageCache["specialTextureImage"] = tempImage
+        tempImage = self.imageCache["specialTextureImage"]
+        tempRect = pygame.Rect(0,0,self.blockSize,self.blockSize)
+        
+        rotTexOffsets = self.rotateOffsets(self.textureOffsets)
+        tempRect.center = (self.x-cameraX + rotTexOffsets[0],-self.y+cameraY + rotTexOffsets[1])
+        tempRect = tempImage.get_rect(center=tempRect.center)
+
+        display.blit(tempImage,tempRect)
     def blitTexture(self):
         if not ((cameraX+300)-self.x < 80*5 and (cameraX+300)-self.x > -80*13 and (cameraY-520)-self.y < 80*4 and (cameraY-520)-self.y > -80*7):
             return
@@ -560,30 +640,56 @@ floorY = 0
 ceilingY = gridSizeInPixels*500
 
 def drawDisplay():
-    for block in blocksInLevel:
+    """
+    previous order: blit blocks, blit ground, blit icon, blit ui
+    new order: blit undersideblocks like portals, blit icon, blit blocks, blit ground, blit ui
+    """
+    # Blit deco blocks and underside of blocks
+    blocksToBlit = blocksInLevel.copy() # Very important to copy
+
+    for block in blocksToBlit:
+        block.blitSpecialTexture()
+        # TODO: Make up a way to tell if a block is deco. having it in blocktype is weird
+        if block.blockType.count("deco") < 1 and not (block.blockType == "blueRing" or block.blockType == "pinkRing" or block.blockType == "yellowRing"):
+            continue # Press start reference
         block.blitTexture()
+        blocksToBlit.remove(block)
+
+    # blit icon
+    player1.blitIcon()
+
+    # finally blit those unblitted blocks
+    for block in blocksToBlit:
+        block.blitTexture()
+    
     if showHitboxes:
         drawHitboxes()
+
     #draw ground
     groundRect = pygame.Rect(0,0,1280,400)
     groundRect.topleft = (0,-floorY+cameraY)
     pygame.draw.rect(display,(255,0,0),groundRect)
 
+    # and ceiling
     ceilingRect = pygame.Rect(0,0,1280,400)
     ceilingRect.bottomleft = (0,-ceilingY+cameraY)
     pygame.draw.rect(display,(255,0,0),ceilingRect)
 
-    player1.blitIcon()
-
-    font = pygame.font.Font("./resources/fonts/MSGOTHIC.TTC",28)
-    def renderBoldFont(string,x,y):
+    # render font n such
+    def renderBoldFont(string,x,y,size=28):
+        font = pygame.font.Font("./resources/fonts/MSGOTHIC.TTC",size)
         logoStr = string
-        font.set_bold(800)
         surface = font.render(logoStr,True,(255,255,255))
-        font.bold = False
         surface2 = font.render(logoStr,True,(0,0,0))
-        display.blit(surface,(x-abs(surface.get_size()[0]-surface2.get_size()[0]),y-abs(surface.get_size()[1]-surface2.get_size()[1])))
+        """offsetX = -abs(surface.get_width()-surface2.get_width())
+        offsetX = -2
+        offsetY = -abs(surface.get_height()-surface2.get_height())
+        offsetY = 0"""
+        offsets = [(-1,-1),(1,1),(-1,1),(1,-1)]
+        for offset in offsets:
+            display.blit(surface,(x+offset[0],y+offset[1]))
         display.blit(surface2,(x,y))
+    
     renderBoldFont("PyDash made by rschoolu",0,0)
     renderBoldFont("FPS: " + str(round(60/dMult)) + "/" + str(fps),0,30)
     #renderBoldFont("Debug",0,30*2)
@@ -609,7 +715,12 @@ blockTypeTexture = {
     "yellowRing": "./resources/blocks/ring_01_001.png",
     "pinkRing": "./resources/blocks/ring_03_001.png",
     "smallSpike": "./resources/blocks/spike_02_001.png",
-    "portalBall": "./resources/blocks/spike_02_001.png", #placeholder
+    "portalFlippedGrav": "./resources/blocks/portals/portal_02_front_001.png",
+    "portalNormalGrav": "./resources/blocks/portals/portal_01_front_001.png",
+    "portalBall": "./resources/blocks/portals/portal_07_front_001.png",  #"./resources/blocks/spike_02_001.png", #placeholder
+    "portalCube": "./resources/blocks/portals/portal_03_front_001.png",
+    "portalWave": "./resources/blocks/portals/portal_13_front_001.png", # automatically, in the blitting, should be a special process to auto-blit the under texture
+    "portalUfo": "./resources/blocks/portals/portal_10_front_001.png",  # portalUFO ????
 }
 
 class EditorBrush(): #for editor
@@ -635,12 +746,26 @@ class EditorBrush(): #for editor
         self.updateTexture()
     def paint(self):
         collisionRect = pygame.Rect(self.x-cameraX,-self.y+cameraY,1,1)
-        if collisionRect.colliderect(buildButtonRect):
+        for buttonStr in editorButtons:
+            buttonRect = editorButtons[buttonStr]
+            if collisionRect.colliderect(buttonRect):
+                key = list(editorButtons.keys())[list(editorButtons.values()).index(buttonRect)]
+                #print(key)
+                match key:
+                    case "buildButtonRect":
+                        self.mode = "draw"
+                    case "editButtonRect":
+                        self.mode = "edit"
+                    case "deselect":
+                        self.selectedBlockIndex = -1
+                return
+        """if collisionRect.colliderect(buildButtonRect):
             self.mode = "draw"
             return
         if collisionRect.colliderect(editButtonRect):
             self.mode = "edit"
             return
+        """
         match self.mode:
             case "draw":
                 self.placeBlock()
@@ -662,12 +787,16 @@ class EditorBrush(): #for editor
         if self.selectedBlockIndex > blocksInLevel.__len__()-1:
             self.selectedBlockIndex = -1
             return
-        surface = pygame.Surface((80,80))
+        selectedBlock = blocksInLevel[self.selectedBlockIndex]
+        textureWidth,textureHeight = (selectedBlock.textureImage.get_width()*80/120).__int__(),(selectedBlock.textureImage.get_height()*80/120).__int__()
+        textureWidth,textureHeight = Block.rotateSize(selectedBlock,textureWidth,textureHeight)[0],Block.rotateSize(selectedBlock,textureWidth,textureHeight)[1]
+        surface = pygame.Surface((textureWidth,textureHeight))
         surface.fill((255,255,255))
         surface.set_alpha(128)
-        screenX = blocksInLevel[self.selectedBlockIndex].x-cameraX
-        screenY = -blocksInLevel[self.selectedBlockIndex].y+cameraY
-        display.blit(surface,(screenX-40,screenY-40))
+        offsetsX,offsetsY = selectedBlock.rotateOffsets(selectedBlock.getTextureOffsets())
+        screenX = selectedBlock.x-cameraX+offsetsX
+        screenY = -selectedBlock.y+cameraY+offsetsY
+        display.blit(surface,(screenX-textureWidth/2,screenY-textureHeight/2))
     def placeBlock(self):
         newBlock = Block(round(self.x/80)*80,round((self.y-40)/80)*80+40,self.blockType,self.texture,self.rotation,self.scale)
         blocksInLevel.append(newBlock)
@@ -682,6 +811,15 @@ class EditorBrush(): #for editor
         block.rotation %= 360
         block.scale += scale
         block.resetHitbox()
+        return
+    def cloneSelectedObject(self):
+        if self.selectedBlockIndex == -1:
+            return
+        block = blocksInLevel[self.selectedBlockIndex]
+        clonedBlock = Block(block.x,block.y,block.blockType,block.textureStr,block.rotation,block.scale)
+        clonedBlock.resetHitbox()
+        blocksInLevel.append(clonedBlock)
+        self.selectedBlockIndex = blocksInLevel.index(clonedBlock)
         return
     def blitBrush(self):
         if self.mode == "edit":
@@ -727,11 +865,17 @@ def editorDrawPre():
     spawnRect.center = (-gridSizeInPixels*8-cameraX,-40+cameraY)
     pygame.draw.rect(display,(0,255,0),spawnRect)
 
-buildButtonRect = pygame.Rect(0,0,200,50)
-buildButtonRect.topright = (1280-40,40)
+editorButtons = {
+    "buildButtonRect": pygame.Rect(0,0,200,50),
+    "editButtonRect": pygame.Rect(0,0,200,50),
+    "deselect": pygame.Rect(0,0,200,50)
+}
 
-editButtonRect = pygame.Rect(0,0,200,50)
-editButtonRect.topright = (1280-40,40 + buildButtonRect.height*1.1)
+editorButtons["buildButtonRect"].topright = (1280-40,40)
+
+editorButtons["editButtonRect"].topright = (1280-40,40 + editorButtons["buildButtonRect"].height*1.1)
+
+editorButtons["deselect"].topright = (1280-40,40 + editorButtons["buildButtonRect"].height*1.1*2)
 
 def editorDrawPost():
     currentBrush.blitBrush()
@@ -752,11 +896,20 @@ def editorDrawPost():
         drawColor = (255,255,255)
         editColor = (0,255,0)
 
-    pygame.draw.rect(display,drawColor,buildButtonRect)
-    display.blit(buildText,(buildButtonRect.centerx-buildText.get_width()/2,buildButtonRect.centery-buildText.get_height()/2))
+    text = font.render("Nadeko draw",True,(0,0,0))
 
-    pygame.draw.rect(display,editColor,editButtonRect)
-    display.blit(editText,(editButtonRect.centerx-editText.get_width()/2,editButtonRect.centery-editText.get_height()/2))
+    pygame.draw.rect(display,drawColor,editorButtons["buildButtonRect"])
+    display.blit(text,(editorButtons["buildButtonRect"].centerx-text.get_width()/2,editorButtons["buildButtonRect"].centery-text.get_height()/2))
+
+    text = font.render("Edit Mode",True,(0,0,0))
+    pygame.draw.rect(display,editColor,editorButtons["editButtonRect"])
+    display.blit(text,(editorButtons["editButtonRect"].centerx-text.get_width()/2,editorButtons["editButtonRect"].centery-text.get_height()/2))
+
+    text = font.render("Deselect",True,(0,0,0))
+    pygame.draw.rect(display,(255,255,255),editorButtons["deselect"])
+    display.blit(text,(editorButtons["deselect"].centerx-text.get_width()/2,editorButtons["deselect"].centery-text.get_height()/2))
+
+    #renderBoldFont("make sum good for me boaaa",720/2,0,40)
 
 def editorLoop():
     global keys, mouse
@@ -791,14 +944,17 @@ def editorLoop():
 
     if currentBrush.mode == "edit":
         moveMultiplier = 1/((keys[pygame.K_LSHIFT]*9)+1)
-        if keys[pygame.K_w] and not prevKeys[pygame.K_w]:
-            currentBrush.editSelectedObject(yPos=gridSizeInPixels*moveMultiplier)
-        if keys[pygame.K_a] and not prevKeys[pygame.K_a]:
-            currentBrush.editSelectedObject(xPos=-gridSizeInPixels*moveMultiplier)
-        if keys[pygame.K_s] and not prevKeys[pygame.K_s]:
-            currentBrush.editSelectedObject(yPos=-gridSizeInPixels*moveMultiplier)
-        if keys[pygame.K_d] and not prevKeys[pygame.K_d]:
-            currentBrush.editSelectedObject(xPos=gridSizeInPixels*moveMultiplier)
+        if not keys[pygame.K_LCTRL]:
+            if keys[pygame.K_w] and not prevKeys[pygame.K_w]:
+                currentBrush.editSelectedObject(yPos=gridSizeInPixels*moveMultiplier)
+            if keys[pygame.K_a] and not prevKeys[pygame.K_a]:
+                currentBrush.editSelectedObject(xPos=-gridSizeInPixels*moveMultiplier)
+            if keys[pygame.K_s] and not prevKeys[pygame.K_s]:
+                currentBrush.editSelectedObject(yPos=-gridSizeInPixels*moveMultiplier)
+            if keys[pygame.K_d] and not prevKeys[pygame.K_d]:
+                currentBrush.editSelectedObject(xPos=gridSizeInPixels*moveMultiplier)
+        if keys[pygame.K_LCTRL] and keys[pygame.K_d] and not prevKeys[pygame.K_d]:
+            currentBrush.cloneSelectedObject()
     
     if mouse[2] and not prevMouse[2]:
         currentBrush.erase()
