@@ -1,5 +1,5 @@
 import pygame
-import math
+#import math
 
 # I suck at this
 # Example file showing a basic pygame "game loop"
