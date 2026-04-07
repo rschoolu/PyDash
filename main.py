@@ -1,5 +1,5 @@
 import pygame
-#import math
+import math
 import pathlib
 import os
 os.chdir(pathlib.Path(__file__).parent)
@@ -267,6 +267,18 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                             self.gamemode = "cube"
                             floorY = 0
                             ceilingY = gridSizeInPixels*500
+                    case "portalNormalGrav":
+                        if touchingCase:
+                            block.specialHitboxRect = False
+                            if self.gravity/abs(self.gravity) == -1:
+                                self.gravity *= -1
+                                self.yVelocity *= 0.5
+                    case "portalFlippedGrav":
+                        if touchingCase:
+                            block.specialHitboxRect = False
+                            if self.gravity/abs(self.gravity) == 1:
+                                self.gravity *= -1
+                                self.yVelocity *= 0.5
         
         if not self.grounded:
             self.yVelocity -= self.gravity*self.baseGravity*self.gamemodeGravity*dMult
@@ -369,6 +381,15 @@ class Block():
     def rotateOffsets(self,offsets=False): #by default it does texture offsets
         if offsets == False:
             offsets = self.textureOffsets
+        rotation = (self.rotation-90)%360
+        """
+        I'm gonna be so honest I don't even know trigonometry.
+        I just googled this because it was relatively sort of in my knowledge that to rotate a point in degrees trigonometry was involved
+        So yes I larp trig"""
+        return [offsets[0]*math.cos(math.radians(rotation)) - offsets[1]*math.sin(math.radians(rotation)),offsets[0]*math.sin(math.radians(rotation)) + offsets[1]*math.cos(math.radians(rotation))]
+        """
+        if offsets == False:
+            offsets = self.textureOffsets
         roundedRotation = (round(-(self.rotation - 90)/90)*90)%360
         match roundedRotation:
             case 0:
@@ -378,7 +399,7 @@ class Block():
             case 180:
                 return [-offsets[0],-offsets[1]]
             case 270:
-                return [-offsets[1],offsets[0]]
+                return [-offsets[1],offsets[0]]"""
     def rotateSize(self,sizeX,sizeY):
         roundedRotation = (round(-(self.rotation - 90)/90)*90)%180
         match roundedRotation:
@@ -653,14 +674,17 @@ def drawDisplay():
         if block.blockType.count("deco") < 1 and not (block.blockType == "blueRing" or block.blockType == "pinkRing" or block.blockType == "yellowRing"):
             continue # Press start reference
         block.blitTexture()
-        blocksToBlit.remove(block)
+        blocksToBlit[blocksToBlit.index(block)] = "noBlit"
 
     # blit icon
     player1.blitIcon()
 
     # finally blit those unblitted blocks
     for block in blocksToBlit:
+        if block == "noBlit":
+            continue
         block.blitTexture()
+        blocksToBlit[blocksToBlit.index(block)] = "noBlit"
     
     if showHitboxes:
         drawHitboxes()
