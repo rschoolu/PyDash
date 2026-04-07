@@ -87,7 +87,6 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         #pygame.sprite.Sprite.__init__(self.sprite)
         #self.sprite.add(spriteGroup)
         self.imageIdiot = pygame.image.load("./resources/icons/missing.png").convert_alpha()
-
         return
     def update(self):
         #Stupid sprite
@@ -113,11 +112,6 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         self.blockHurtHitboxRect.center = (self.x + self.bhhrOffsets[0], -self.y + self.bhhrOffsets[1])
         self.floorHitboxRect.center = (self.x + self.fhrOffsets[0], -self.y + self.fhrOffsets[1])
         self.ceilingHitboxRect.center = (self.x + self.chrOffsets[0], -self.y + self.chrOffsets[1])
-        """self.damageHitboxRect.update()
-        self.specialHitboxRect.update()
-        self.blockHurtHitboxRect.update()
-        self.floorHitboxRect.update()
-        self.ceilingHitboxRect.update()"""
         return
     def blitIcon(self):
         tempImage = pygame.transform.scale(self.imageIdiot,[self.cubeSize,self.cubeSize])
@@ -173,8 +167,6 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
             floorHitbox = self.ceilingHitboxRect
             ceilingHitbox = self.floorHitboxRect
 
-        # TODO: this collide with floor so we can change floor height
-
         theFloorSon = floorY
         theCeilingSon = ceilingY
         if self.gravity/abs(self.gravity) == -1:
@@ -199,14 +191,12 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                 collidableBlocks.append(block)
         
         for block in collidableBlocks:
+            # TODO: ceiling collision for ball. You did this with the actual ceiling, but not with the blocks.
+            # This will require just a little more work.
             if block.blockHitboxRect != False:
                 f = abs(floorHitbox.centery-block.blockHitboxRect.top)
                 if (self.gravity/abs(self.gravity)) == -1:
                     f = abs(floorHitbox.centery-block.blockHitboxRect.bottom)
-                """isInHitrange = abs(floorHitbox.centery-block.blockHitboxRect.top) < 20
-                if (self.gravity/abs(self.gravity)) == -1:
-                    isInHitrange = abs(floorHitbox.centery-block.blockHitboxRect.bottom) < 20
-                """
                 isInHitrange = f < 20+abs(self.yVelocity)
                 #if not pygame.Rect(floorHitbox.x,floorHitbox.y,floorHitbox.width,floorHitbox.height).colliderect(block.blockHitboxRect) and abs(self.yVelocity) > 10:
                     #isInHitrange = True
@@ -296,32 +286,12 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
             case "ball":
                 self.rotation += 7*self.gravity*(self.grounded*2-1)*dMult
             
-
-        #terminal velocity
-        """if self.yVelocity > self.maxYVel:
-            self.yVelocity = self.maxYVel
-        if self.yVelocity < self.minYVel:
-            self.yVelocity = self.minYVel"""
         # gravity dependent terminal velocity
 
         if self.yVelocity*(self.gravity/abs(self.gravity)) > self.maxYVel:
             self.yVelocity = self.maxYVel*(self.gravity/abs(self.gravity))
         if self.yVelocity*(self.gravity/abs(self.gravity)) < self.minYVel:
             self.yVelocity = self.minYVel*(self.gravity/abs(self.gravity))
-
-        """if self.gravity/abs(self.gravity) == 1:
-            if self.yVelocity > self.maxYVel:
-                self.yVelocity = self.maxYVel
-            if self.yVelocity < self.minYVel:
-                self.yVelocity = self.minYVel
-        elif self.gravity/abs(self.gravity) == -1:
-            # 30 > -10 == -30 < 10
-            # or -self.yVelocity < self.minYVel ???
-            if -self.yVelocity < self.minYVel:
-                self.yVelocity = -self.minYVel
-            if -self.yVelocity > self.maxYVel:
-                self.yVelocity = -self.maxYVel
-        """
 
         if mouseHeld and self.grounded and currentGamemode == "cube":
             #jump
@@ -382,24 +352,10 @@ class Block():
         if offsets == False:
             offsets = self.textureOffsets
         rotation = (self.rotation-90)%360
-        """
-        I'm gonna be so honest I don't even know trigonometry.
-        I just googled this because it was relatively sort of in my knowledge that to rotate a point in degrees trigonometry was involved
-        So yes I larp trig"""
+        # I'm gonna be so honest I don't even know trigonometry.
+        # I just googled this because it was relatively sort of in my knowledge that to rotate a point in degrees trigonometry was involved
+        # So yes I larp trig
         return [offsets[0]*math.cos(math.radians(rotation)) - offsets[1]*math.sin(math.radians(rotation)),offsets[0]*math.sin(math.radians(rotation)) + offsets[1]*math.cos(math.radians(rotation))]
-        """
-        if offsets == False:
-            offsets = self.textureOffsets
-        roundedRotation = (round(-(self.rotation - 90)/90)*90)%360
-        match roundedRotation:
-            case 0:
-                return offsets
-            case 90:
-                return [offsets[1],-offsets[0]]
-            case 180:
-                return [-offsets[0],-offsets[1]]
-            case 270:
-                return [-offsets[1],offsets[0]]"""
     def rotateSize(self,sizeX,sizeY):
         roundedRotation = (round(-(self.rotation - 90)/90)*90)%180
         match roundedRotation:
@@ -504,53 +460,6 @@ class Block():
 player1 = Player()
 player1.__init__()
 
-"""blocksInLevel = [
-    Block(80*2,40,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*2,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*3,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*4,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*5,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*6,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*6,40+80*2,"fullSpike","./resources/blocks/spike_01_001.png",90,1),
-    Block(80*7,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*7,40+80*2,"fullSpike","./resources/blocks/spike_01_001.png",90,1),
-    Block(80*8,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*8,40+80*2,"fullSpike","./resources/blocks/spike_01_001.png",90,1),
-    Block(80*9,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*10,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*11,40+80,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*13,40+80,"blueRing","./resources/blocks/gravring_01_001.png",90,1),
-    Block(80*14,40+80*4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*15,40+80*4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*16,40+80*4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*17,40+80*4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*18,40+80*4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*19,40+80*3.9,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*20,40+80*3.8,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*21,40+80*3.7,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*21,40+80*3.7,"blueRing","./resources/blocks/gravring_01_001.png",90,1),
-    Block(80*22,40+80*3.6,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*23,40+80*3.5,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*24,40+80*3.4,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*25,40+80*3.3,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*26,40+80*3.2,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*27,40+80*3.1,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*28,40+80*3,"fullBlock","./resources/blocks/square_01_001.png",90,1),
-    Block(80*34,40+80*2,"yellowRing","./resources/blocks/ring_01_001.png",90,1),
-    Block(80*38,40,"smallSpike","./resources/blocks/spike_02_001.png",90,1)
-]
-tsblock = Block(80*39,40,"smallSpike","./resources/blocks/spike_02_001.png",0,1)
-blocksInLevel.append(tsblock)"""
-
-"""blocksInLevel = [
-    Block(0,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-    Block(-80*1,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-    Block(-80*2,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-    Block(-80*3,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-    Block(-80*4,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-    Block(-80*5,40+80*5,"fullBlock","./resources/blocks/square_01_001.png",1),
-]"""
-
 blocksInLevel = []
 
 def sortBlocks(): # This is so I can do some magic so performance goes up, do this at the start of the game, never again oke?
@@ -578,13 +487,6 @@ def sortBlocks(): # This is so I can do some magic so performance goes up, do th
             sortedList.append(lowest)
             blocksClone.remove(lowest)
     return sortedList
-
-"""blocksInLevel = [
-    Block(20,0,"fullblock","./resources/blocks/square_01_001.png",90,1),
-    Block(0,0,"fullblock","./resources/blocks/square_01_001.png",90,1),
-    Block(60,0,"fullblock","./resources/blocks/square_01_001.png",90,1),
-    Block(-60,0,"fullblock","./resources/blocks/square_01_001.png",90,1)
-]"""
 
 blocksInLevel = sortBlocks()
 
@@ -625,32 +527,11 @@ def drawHitboxes():
         display.blit(surface, newRect.topleft)
     for block in blocksInLevel:
         if block.blockHitboxRect:
-            """newRect = pygame.Rect(0,0,block.blockHitboxRect.width,block.blockHitboxRect.height)
-            newRect.center = (block.blockHitboxRect.center[0]-cameraX,block.blockHitboxRect.center[1]+cameraY)
-            surface = pygame.Surface(newRect.size)
-            surface.set_alpha(128)
-            surface.fill((255,255,0))
-            display.blit(surface, newRect.topleft)"""
             drawTransparentRect(block.blockHitboxRect,(255,255,0))
-            #pygame.draw.rect(display,(255,255,0),newRect)
         if block.damageHitboxRect:
-            """newRect = pygame.Rect(0,0,block.damageHitboxRect.width,block.damageHitboxRect.height)
-            newRect.center = (block.damageHitboxRect.center[0]-cameraX,block.damageHitboxRect.center[1]+cameraY)
-            surface = pygame.Surface(newRect.size)
-            surface.set_alpha(128)
-            surface.fill((255,0,0))
-            display.blit(surface, newRect.topleft)"""
             drawTransparentRect(block.damageHitboxRect,(255,0,0))
-            #pygame.draw.rect(display,(255,0,0),newRect)
         if block.specialHitboxRect:
-            """newRect = pygame.Rect(0,0,block.specialHitboxRect.width,block.specialHitboxRect.height)
-            newRect.center = (block.specialHitboxRect.center[0]-cameraX,block.specialHitboxRect.center[1]+cameraY)
-            surface = pygame.Surface(newRect.size)
-            surface.set_alpha(128)
-            surface.fill((0,255,0))
-            display.blit(surface, newRect.topleft)"""
             drawTransparentRect(block.specialHitboxRect,(0,255,0))
-            #pygame.draw.rect(display,(0,255,0),newRect)
     drawTransparentRect(player1.damageHitboxRect,(255,0,0))
     drawTransparentRect(player1.ceilingHitboxRect,(0,255,0))
     drawTransparentRect(player1.floorHitboxRect,(0,255,0))
@@ -661,10 +542,9 @@ floorY = 0
 ceilingY = gridSizeInPixels*500
 
 def drawDisplay():
-    """
-    previous order: blit blocks, blit ground, blit icon, blit ui
-    new order: blit undersideblocks like portals, blit icon, blit blocks, blit ground, blit ui
-    """
+    # previous order: blit blocks, blit ground, blit icon, blit ui
+    # new order: blit undersideblocks like portals, blit icon, blit blocks, blit ground, blit ui
+    
     # Blit deco blocks and underside of blocks
     blocksToBlit = blocksInLevel.copy() # Very important to copy
 
@@ -783,13 +663,6 @@ class EditorBrush(): #for editor
                     case "deselect":
                         self.selectedBlockIndex = -1
                 return
-        """if collisionRect.colliderect(buildButtonRect):
-            self.mode = "draw"
-            return
-        if collisionRect.colliderect(editButtonRect):
-            self.mode = "edit"
-            return
-        """
         match self.mode:
             case "draw":
                 self.placeBlock()
