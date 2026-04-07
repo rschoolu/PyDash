@@ -195,15 +195,18 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
             # This will require just a little more work.
             if block.blockHitboxRect != False:
                 f = abs(floorHitbox.centery-block.blockHitboxRect.top)
+                c = abs(ceilingHitbox.centery-block.blockHitboxRect.bottom)
                 if (self.gravity/abs(self.gravity)) == -1:
                     f = abs(floorHitbox.centery-block.blockHitboxRect.bottom)
-                isInHitrange = f < 20+abs(self.yVelocity)
+                    c = abs(ceilingHitbox.centery-block.blockHitboxRect.top)
+                isInHitrangeFloor = f < 20+abs(self.yVelocity)
+                isInHitrangeCeiling = c < 20+abs(self.yVelocity)
                 #if not pygame.Rect(floorHitbox.x,floorHitbox.y,floorHitbox.width,floorHitbox.height).colliderect(block.blockHitboxRect) and abs(self.yVelocity) > 10:
                     #isInHitrange = True
-                if floorHitbox.colliderect(block.blockHitboxRect) == True and isInHitrange and self.yVelocity*(self.gravity/abs(self.gravity)) <= 0:
+                if floorHitbox.colliderect(block.blockHitboxRect) and isInHitrangeFloor and self.yVelocity*(self.gravity/abs(self.gravity)) <= 0:
                     self.grounded = True
                     exit = False
-                    originalY = self.y
+                    #originalY = self.y
                     while not exit:
                         self.y += (self.gravity/abs(self.gravity))
                         self.updateHitbox()
@@ -212,6 +215,17 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                             self.y -= (self.gravity/abs(self.gravity))
                             #if abs(originalY-self.y) > 20:
                                 #self.y = originalY
+                if currentGamemode == "ball": # ceiling only hits with ball
+                    if ceilingHitbox.colliderect(block.blockHitboxRect) and isInHitrangeCeiling and self.yVelocity*(self.gravity/abs(self.gravity)) >= 0: # more than zero this time
+                        self.yVelocity = 0
+                        exit = False
+                        while not exit:
+                            self.y -= (self.gravity/abs(self.gravity))
+                            self.updateHitbox()
+                            if not ceilingHitbox.colliderect(block.blockHitboxRect):
+                                exit = True
+                                self.y += (self.gravity/abs(self.gravity))
+                
                 if self.blockHurtHitboxRect.colliderect(block.blockHitboxRect) == True:
                     self.die()
             if block.damageHitboxRect != False:
