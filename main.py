@@ -32,8 +32,10 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
         self.gravity = 1 # 1 = normal gravity, -1 = flipped gravity, 0 = wuttttt
         self.gamemodeGravity = 1
         self.gamemodeOrbForce = 1
+        self.gamemodePadForce = 1
         self.speed = (Game.gridSizeInPixels*10.3761348898)/60 # adjust later
         self.rotation = 90 # in degrees
+        self.editorTrailPositionTestingThing = [] #delete ts soon bruh lol
         #self.orbBuffer = False # If can orb buffer
         self.clickBuffer = False #if click can buffer deprecates orb bufferrr
         # \|/ change these based on gamemode
@@ -119,11 +121,13 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                 self.minYVel = -100
                 self.gamemodeGravity = 1
                 self.gamemodeOrbForce = 1
+                self.gamemodePadForce = 1
             case "ball":
                 self.maxYVel = 30
                 self.minYVel = -30
                 self.gamemodeGravity = 0.7
                 self.gamemodeOrbForce = 0.8
+                self.gamemodePadForce = 0.7
         return
     def physicsTick(self): # physicstick
         #for block in blocksInLevel:
@@ -311,19 +315,19 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                             rot = round(((block.rotation-90)%360)/90)
                             if -self.gravity/abs(self.gravity)+1 == rot or round(rot/2)!=rot/2:
                                 self.gravity *= -1
-                                self.yVelocity = -10*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce
+                                self.yVelocity = -10*(self.gravity/abs(self.gravity)) * self.gamemodePadForce
                     case "pinkPad":
                         if touchingCase: 
                             block.specialHitboxRect = False
                             self.grounded = False # VERY IMPORTANT
                             # less than self.jumpForce but more than pinkOrb okeee
-                            self.yVelocity = 25*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce # IMPORTANT: Not sure if this is good
+                            self.yVelocity = 25*(self.gravity/abs(self.gravity)) * self.gamemodePadForce # IMPORTANT: Not sure if this is good
                     case "yellowPad":
                         if touchingCase: 
                             block.specialHitboxRect = False
                             self.grounded = False # VERY IMPORTANT
                             # beats me
-                            self.yVelocity = 38*(self.gravity/abs(self.gravity)) * self.gamemodeOrbForce # IMPORTANT: Not sure if this is good
+                            self.yVelocity = 38*(self.gravity/abs(self.gravity)) * self.gamemodePadForce # IMPORTANT: Not sure if this is good
         
         if not self.grounded:
             self.yVelocity -= self.gravity*self.baseGravity*self.gamemodeGravity*dMult
@@ -339,7 +343,7 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                 else:
                     self.rotation = (round(self.rotation/90)*90)%360
             case "ball":
-                self.rotation += 7*self.gravity*(self.grounded*2-1)*dMult
+                self.rotation += 7*(self.speed/((Game.gridSizeInPixels*10.3761348898)/60))*self.gravity*(self.grounded*2-1)*dMult
             
         # gravity dependent terminal velocity
 
@@ -601,6 +605,9 @@ class EditorBrush(): #for editor
                         currentGame.resetLevel()
                         DataSave.save(currentGame.blocksInLevel)
                     case "load":
+                        windowsPathList = list(pathlib.Path("./data/").iterdir())
+                        for windowsPath in windowsPathList:
+                            print(str(windowsPathList.index(windowsPath)) + ": " + windowsPath.name)
                         currentGame.blocksInLevel = DataSave.load(input("level name (not path): "))
                 return
         match self.mode:
@@ -990,6 +997,12 @@ class Game():
         #renderBoldFont("make sum good for me boaaa",720/2,0,40)
         return
     def editorLoop(self):
+        # new thing
+        if keys[pygame.K_1] and not prevKeys[pygame.K_1]:
+            self.currentBrush.mode = "draw"
+        if keys[pygame.K_2] and not prevKeys[pygame.K_2]:
+            self.currentBrush.mode = "edit"
+
         speed = 10
         if (keys[pygame.K_LSHIFT]):
             speed = 1

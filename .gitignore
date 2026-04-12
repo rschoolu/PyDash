@@ -3,3 +3,6 @@
 /.vscode/*
 ./dist/*
 ./build/*
+/resources/music/*
+!/resources/music/hero-pump-it-hardtekk.ogg
+!/resources/music/wallahi.ogg
