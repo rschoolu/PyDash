@@ -293,7 +293,7 @@ class Player(): # Most likely will be a shell, with a function called "tickPlaye
                         if orbCase:
                             disableOrb()
                             self.gravity *= -1
-                            self.yVelocity = self.jumpForce(self.gravity/abs(self.gravity)) * greenRingForce
+                            self.yVelocity = self.jumpForce*(self.gravity/abs(self.gravity)) * greenRingForce
                     case "portalBall":
                         if touchingCase:
                             block.specialHitboxRect = False
